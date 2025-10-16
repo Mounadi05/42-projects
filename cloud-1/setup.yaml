@@ -1,0 +1,72 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - ./files/inception/.env
+  tasks:
+    - name: Create cloud security group
+      amazon.aws.ec2_group:
+        name: cloud_security_group
+        description: Security group for cloud
+        region: us-east-1
+        rules:
+          - proto: tcp
+            from_port: 443
+            to_port: 443
+            cidr_ip: 0.0.0.0/0
+          - proto: tcp
+            from_port: 22
+            to_port: 22
+            cidr_ip: 197.230.240.146/32
+      register: cloud_group
+      when: host is not defined
+
+
+    - name: Gather existing instance information
+      amazon.aws.ec2_instance_info:
+        region: us-east-1
+      register: ec2_info
+
+    - name: Provision Cloud instance if not exists
+      community.aws.ec2_instance:
+        key_name: ansible
+        name: cloud
+        security_group: "{{ cloud_group.group_id }}"
+        instance_type: t2.micro
+        image_id: ami-064519b8c76274859
+        region: us-east-1
+        wait: true
+        count: 1
+        tags:
+          Name: cloud
+      register: cloud_ec2
+      when: host is not defined
+      
+    - name: add cloud instance to inventory
+      add_host:
+         name: "{{ cloud_ec2.instances[0].network_interfaces[0].association.public_dns_name }}"
+         ansible_ssh_user: admin
+         ansible_ssh_private_key_file: ./ansible.pem
+         ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o ConnectTimeout=60'
+         groups: cloud_instance
+      when: host is not defined
+
+    - name: Write instance details to .env on local machine
+      when: 
+        - host is not defined 
+      local_action:
+        module: blockinfile
+        path: ./files/inception/.env
+        block: |
+          url: "{{ cloud_ec2.instances[0].public_ip_address }}"
+          host: "{{ cloud_ec2.instances[0].network_interfaces[0].association.public_dns_name }}"
+        create: yes
+        marker: ""
+    
+    - name: Pause for 80 seconds
+      pause:
+        seconds: 80      
+
+- import_playbook: inception-playbook.yaml
+...

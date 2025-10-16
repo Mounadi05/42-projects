@@ -1,0 +1,67 @@
+---
+- hosts: cloud_instance
+  remote_user: admin
+  become: yes
+  tasks:
+    - name: Update package list
+      apt:
+        update_cache: yes
+
+    - name: Install docker
+      apt:
+        name: docker
+        state: latest
+    
+    - name: Install docker-compose
+      apt:
+        name: docker-compose
+        state: latest
+    
+    - name: Create folder data
+      file:
+        path: /home/admin/data
+        state: directory
+        owner: admin
+        group: admin
+        mode: '0755'
+
+    - name: Create folder DB
+      file:
+        path: /home/admin/data/DB
+        state: directory
+        owner: admin
+        group: admin
+        mode: '0755'
+
+    - name: Create folder WB
+      file:
+        path: /home/admin/data/WB
+        state: directory
+        owner: admin
+        group: admin
+        mode: '0755'
+
+    - name: create  destination directory
+      file:
+        path: /home/admin/inception
+        state: directory
+        owner: admin
+        group: admin
+        mode: '0755'
+    - name: Copy inception directory to remote server
+      copy:
+        src: files/inception/
+        dest: /home/admin/inception/
+        owner: admin
+        group: admin
+        mode: '0755'
+     
+    
+    - name: update env file
+      command: sed -i 's/\:/\=/g' /home/admin/inception/.env
+    
+    - name: run docker-compose up
+      command: docker-compose up -d
+      args:
+        chdir: /home/admin/inception
+...

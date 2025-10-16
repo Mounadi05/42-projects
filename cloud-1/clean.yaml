@@ -1,0 +1,35 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - ./files/inception/.env
+
+  tasks:
+    - name: Gather existing instance information
+      amazon.aws.ec2_instance_info:
+        region: us-east-1
+        filters:
+          "tag:Name": cloud
+      register: ec2_info
+
+    - name: Terminate Cloud instance if it exists
+      community.aws.ec2_instance:
+        state: absent
+        instance_ids: "{{ ec2_info.instances | map(attribute='instance_id') }}"
+        region: us-east-1
+        wait: true
+      when: ec2_info.instances | length > 0
+
+    - name: Remove host entry from .env file
+      lineinfile:
+        path: ./files/inception/.env
+        state: absent
+        regexp: '^host:.*$'
+
+    - name: Remove url entry from .env file
+      lineinfile:
+        path: ./files/inception/.env
+        state: absent
+        regexp: '^url:.*$'
+...
