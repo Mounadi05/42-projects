@@ -18,3 +18,7 @@ This repository catalogs projects completed outside the 42 common core curriculu
 
 ## kfs1
 - Overview: Minimal x86 kernel with bootloader in C and assembly.
+
+## ft_ping
+- Overview: C reimplementation of the Unix `ping` command.
+
