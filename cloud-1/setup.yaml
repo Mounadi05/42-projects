@@ -18,7 +18,7 @@
           - proto: tcp
             from_port: 22
             to_port: 22
-            cidr_ip: 197.230.240.146/32
+            cidr_ip: 191.200.40.146/32
       register: cloud_group
       when: host is not defined
 
